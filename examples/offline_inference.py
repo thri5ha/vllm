@@ -1,8 +1,6 @@
 from vllm import LLM, SamplingParams
 from huggingface_hub import login
 
-login(token = "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")
-
 
 # Sample prompts.
 prompts = [
