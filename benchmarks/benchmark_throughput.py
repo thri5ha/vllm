@@ -107,7 +107,7 @@ def run_vllm(
         max_num_batched_tokens=max_num_batched_tokens,
         distributed_executor_backend=distributed_executor_backend,
         load_format=load_format,
-        max_num_seqs = max_num_seqs
+        max_num_seqs = max_num_seqs,
     )
 
     # Add the requests to the engine.
@@ -125,8 +125,8 @@ def run_vllm(
                 max_tokens=output_len,
             ))
 
-    NUM_ITERS = 5
-    WARM_UP = 2
+    NUM_ITERS = 30
+    WARM_UP = 5
     print("Warm up")
     for i in range(WARM_UP):
         llm.generate(prompts, sampling_params, use_tqdm=True)
