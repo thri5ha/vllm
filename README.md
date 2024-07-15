@@ -127,3 +127,5 @@ If you use vLLM for your research, please cite our [paper](https://arxiv.org/abs
   year={2023}
 }
 ```
+
+# Modifying benchmark_throughput.py to do benchmarking for different batch sizes & with different models.
