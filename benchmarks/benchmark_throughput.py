@@ -12,8 +12,12 @@ from transformers import (AutoModelForCausalLM, AutoTokenizer,
 
 from vllm.engine.arg_utils import EngineArgs
 from vllm.model_executor.layers.quantization import QUANTIZATION_METHODS
-from vllm.utils import FlexibleArgumentParser
+# from vllm.utils import FlexibleArgumentParser
+from argparse import ArgumentParser as FlexibleArgumentParser
 
+from huggingface_hub import login
+
+login("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")
 
 def sample_requests(
     dataset_path: str,
@@ -84,6 +88,7 @@ def run_vllm(
     gpu_memory_utilization: float = 0.9,
     download_dir: Optional[str] = None,
     load_format: str = EngineArgs.load_format,
+    max_num_seqs: int = None
 ) -> float:
     from vllm import LLM, SamplingParams
     llm = LLM(
@@ -106,6 +111,7 @@ def run_vllm(
         max_num_batched_tokens=max_num_batched_tokens,
         distributed_executor_backend=distributed_executor_backend,
         load_format=load_format,
+        max_num_seqs = max_num_seqs,
     )
 
     # Add the requests to the engine.
@@ -123,10 +129,22 @@ def run_vllm(
                 max_tokens=output_len,
             ))
 
-    start = time.perf_counter()
-    llm.generate(prompts, sampling_params, use_tqdm=True)
-    end = time.perf_counter()
-    return end - start
+    NUM_ITERS = 30 # will change it later at time of benchmarking
+    WARM_UP = 5
+    print("Warm up")
+    for i in range(WARM_UP):
+        llm.generate(prompts, sampling_params, use_tqdm=True)
+    print("Warm up done.")
+    
+    elapsed_time = 0
+    for i in range(NUM_ITERS):
+        start = time.perf_counter()
+        llm.generate(prompts, sampling_params, use_tqdm=True)
+        end = time.perf_counter()
+        elapsed_time += (end - start)
+    
+    mean_time = elapsed_time / NUM_ITERS
+    return mean_time
 
 
 def run_hf(
@@ -232,7 +250,7 @@ def main(args: argparse.Namespace):
             args.quantization_param_path, args.device,
             args.enable_prefix_caching, args.enable_chunked_prefill,
             args.max_num_batched_tokens, args.distributed_executor_backend,
-            args.gpu_memory_utilization, args.download_dir, args.load_format)
+            args.gpu_memory_utilization, args.download_dir, args.load_format, args.max_num_seqs)
     elif args.backend == "hf":
         assert args.tensor_parallel_size == 1
         elapsed_time = run_hf(requests, args.model, tokenizer, args.n,
@@ -313,7 +331,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--dtype',
         type=str,
-        default='auto',
+        default='float16',
         choices=['auto', 'half', 'float16', 'bfloat16', 'float', 'float32'],
         help='data type for model weights and activations. '
         'The "auto" option will use FP16 precision '
@@ -405,6 +423,7 @@ if __name__ == "__main__":
         'section for more information.\n'
         '* "bitsandbytes" will load the weights using bitsandbytes '
         'quantization.\n')
+    parser.add_argument('--max-num-seqs',type=int, help="batch size")
     args = parser.parse_args()
     if args.tokenizer is None:
         args.tokenizer = args.model
