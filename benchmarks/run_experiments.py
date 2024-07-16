@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 SMALL_MODELS = ["facebook/opt-125m", "facebook/opt-1.3b", "facebook/opt-2.7b"]
-LARGE_MODELS = ["meta-llama/Llama-2-7b-hf", "meta-llama/Meta-Llama-3-8B", "meta-llama/Meta-Llama-3-8B-Instruct", 
-                "mistralai/Mistral-7B-v0.1", "mistralai/Mistral-7B-Instruct-v0.3"]
+LARGE_MODELS = ["meta-llama/Llama-2-7b-hf", "meta-llama/Meta-Llama-3-8B", "meta-llama/Meta-Llama-3-8B-Instruct", "mistralai/Mistral-7B-v0.1", "mistralai/Mistral-7B-Instruct-v0.3"]
 
-MODELS = SMALL_MODELS + LARGE_MODELS
+MODELS = SMALL_MODELS  + LARGE_MODELS
 
 NUM_PROMPTS = 100
 NUM_GPUS = [1, 2]
-BATCH_SIZES = [4, 8, 16, 24, 32, 36, 40, 64]
+BATCH_SIZES = [4,8,16,24, 32, 36, 40, 64]
 MAX_OUTPUT_LEN = 100
 MAX_MODEL_LEN = 1300
 
@@ -24,7 +23,8 @@ gpu_type = "Nvidia GeForce RTX 2080"
 GRAPH_OUTPUT_PATH_1="/home/mcw/vllm_results/benchmark_plots1"
 GRAPH_OUTPUT_PATH_2="/home/mcw/vllm_results/benchmark_plots2"
 CSV_OUTPUT_PATH="/home/mcw/vllm_results/benchmark_all_csv"
-OUTPUT_PATH = "/home/mcw/common/results_07_14"
+OUTPUT_PATH = "/home/mcw/common/results_07_15"
+
 # DATASET_PATH = "/home/mcw/common/learning/testing_data/prompts.json"
 DATASET_PATH = "/home/mcw/thrisha/data/ShareGPT_V3_unfiltered_cleaned_split.json"
 
@@ -32,8 +32,8 @@ SCRIPT_PATH = "/home/mcw/vllm/benchmarks/benchmark_throughput.py"
 
 TIMESTAMP = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
 OUTPUT_PATH = os.path.join(OUTPUT_PATH, TIMESTAMP)
-GRAPH_OUTPUT_PATH = os.path.join(GRAPH_OUTPUT_PATH_1, TIMESTAMP)
-GRAPH_OUTPUT_PATH = os.path.join(GRAPH_OUTPUT_PATH_2, TIMESTAMP)
+GRAPH_OUTPUT_PATH_1 = os.path.join(GRAPH_OUTPUT_PATH_1, TIMESTAMP)
+GRAPH_OUTPUT_PATH_2 = os.path.join(GRAPH_OUTPUT_PATH_2, TIMESTAMP)
 CSV_OUTPUT_PATH= os.path.join(CSV_OUTPUT_PATH, TIMESTAMP)
 os.makedirs(OUTPUT_PATH, exist_ok=True)
 os.makedirs(GRAPH_OUTPUT_PATH_1, exist_ok=True)
@@ -55,12 +55,14 @@ def run_subprocess_realtime(cmd: list) -> int:
 
 
 def plot_model_data(model_name, df, graph_output_path):
-    model_df = df[df['model_base_name'] == model_name]
+    model_df = df[df['model'] == model_name]
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
 
     for num_gpus in [1, 2]:
         gpu_df = model_df[model_df['num_gpus'] == num_gpus]
+        if gpu_df.empty:
+            continue
         gpu_df_sorted = gpu_df.sort_values(by='batch_size')
         ax1.plot(gpu_df_sorted['batch_size'], gpu_df_sorted['elapsed_time'], marker='o', label=f'{model_name} - {num_gpus} GPU(s) - {gpu_type}')
         ax2.plot(gpu_df_sorted['batch_size'], gpu_df_sorted['tokens_per_second'], marker='o', label=f'{model_name} - {num_gpus} GPU(s) - {gpu_type}')
@@ -85,14 +87,17 @@ def plot_model_data(model_name, df, graph_output_path):
     ax2.grid(True)
 
     plt.tight_layout()
-    plt.savefig(os.path.join(graph_output_path, f'{model_name}_latency_throughput.png'))
+    sanitized_model_name = model_name.replace("/", "_")
+    plt.savefig(os.path.join(graph_output_path, rf'{sanitized_model_name}_latency_throughput.png'))
     plt.close()
 
 # Function to plot Latency vs Batch Size for all models for a given number of GPUs
 def plot_latency_vs_batch_size(df, num_gpus, graph_output_path):
     plt.figure(figsize=(12, 8))
-    for model_name in df['model_base_name'].unique():
-        df_model = df[(df['model_base_name'] == model_name) & (df['num_gpus'] == num_gpus)].sort_values('batch_size')
+    for model_name in df['model'].unique():
+        df_model = df[(df['model'] == model_name) & (df['num_gpus'] == num_gpus)].sort_values('batch_size')
+        if df_model.empty:
+            continue
         batch_sizes = df_model['batch_size'].tolist()
         latency = df_model['elapsed_time'].tolist()
         plt.plot(batch_sizes, latency, 'o-', label=model_name)
@@ -102,6 +107,7 @@ def plot_latency_vs_batch_size(df, num_gpus, graph_output_path):
     plt.ylabel('Latency (sec)')
     plt.title(f'Latency vs Batch Size for {num_gpus} GPU(s)')
     plt.legend()
+    plt.grid(True)
     plt.tight_layout()
     plt.savefig(os.path.join(graph_output_path, f'latency_vs_batch_size_{num_gpus}_gpus.png'))
     plt.close()
@@ -109,8 +115,10 @@ def plot_latency_vs_batch_size(df, num_gpus, graph_output_path):
 # Function to plot Throughput vs Batch Size for all models for a given number of GPUs
 def plot_throughput_vs_batch_size(df, num_gpus, graph_output_path):
     plt.figure(figsize=(12, 8))
-    for model_name in df['model_base_name'].unique():
-        df_model = df[(df['model_base_name'] == model_name) & (df['num_gpus'] == num_gpus)].sort_values('batch_size')
+    for model_name in df['model'].unique():
+        df_model = df[(df['model'] == model_name) & (df['num_gpus'] == num_gpus)].sort_values('batch_size')
+        if df_model.empty:
+            continue
         batch_sizes = df_model['batch_size'].tolist()
         throughput = df_model['tokens_per_second'].tolist()
         plt.plot(batch_sizes, throughput, 'o-', label=model_name)
@@ -120,6 +128,7 @@ def plot_throughput_vs_batch_size(df, num_gpus, graph_output_path):
     plt.ylabel('Throughput (Tokens per Second)')
     plt.title(f'Throughput vs Batch Size for {num_gpus} GPU(s)')
     plt.legend()
+    plt.grid(True)
     plt.tight_layout()
     plt.savefig(os.path.join(graph_output_path, f'throughput_vs_batch_size_{num_gpus}_gpus.png'))
     plt.close()
@@ -137,13 +146,16 @@ def generate_graphs(output_folder_path):
                     combined_data.append(data)
         # Convert JSON data to DataFrame
         df = pd.DataFrame(combined_data)
+        df = df.sort_values(by=['model', 'num_gpus', 'batch_size'])
 
-        df['batch_size'] = df['model_name'].apply(lambda x: int(re.search(r'_bs(\d+)_', x).group(1)))
-        df['model_base_name'] = df['model_name'].apply(lambda x: re.search(r'^(.*)_gpu', x).group(1))
-
-        df.to_csv('output.tsv', sep='\t', index=False)
+        # df['batch_size'] = df['model_name'].apply(lambda x: int(re.search(r'_bs(\d+)_', x).group(1)))
+        # df['model_base_name'] = df['model_name'].apply(lambda x: re.search(r'^(.*)_gpu', x).group(1))
+        
+        output_path = os.path.join(CSV_OUTPUT_PATH, 'output.csv')
+        
+        df.to_csv(output_path, sep='\t', index=False)
         # Generate and save plots for each unique model
-        for model in df['model_base_name'].unique():
+        for model in df['model'].unique():
             plot_model_data(model, df,GRAPH_OUTPUT_PATH_1)
         
         for i in NUM_GPUS:
@@ -186,9 +198,11 @@ def main():
                         with open(output_json, 'r') as f:
                             results = json.load(f)
                         
+                        results['model']=model
                         results['model_name'] = experiment_name
                         results['num_gpus'] = tp
                         results['max_output_len'] = max_output_tokens
+                        results['batch_size']=batch_size
                         
                         with open(output_json, 'w') as f:
                             json.dump(results, f, indent=4)
@@ -200,7 +214,7 @@ def main():
                 
     print("Done with inferencing...Creating Graphs..")
 
-    # generate_graphs(OUTPUT_PATH)
+    generate_graphs(OUTPUT_PATH)
 
                         
 if __name__ == "__main__":
