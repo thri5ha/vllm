@@ -15,6 +15,10 @@ from vllm.model_executor.layers.quantization import QUANTIZATION_METHODS
 # from vllm.utils import FlexibleArgumentParser
 from argparse import ArgumentParser as FlexibleArgumentParser
 
+from huggingface_hub import login
+
+login("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")
+
 def sample_requests(
     dataset_path: str,
     num_requests: int,
@@ -125,7 +129,7 @@ def run_vllm(
                 max_tokens=output_len,
             ))
 
-    NUM_ITERS = 30
+    NUM_ITERS = 30 # will change it later at time of benchmarking
     WARM_UP = 5
     print("Warm up")
     for i in range(WARM_UP):
@@ -257,6 +261,7 @@ def main(args: argparse.Namespace):
                                args.output_len)
     else:
         raise ValueError(f"Unknown backend: {args.backend}")
+    
     total_num_tokens = sum(prompt_len + output_len
                            for _, prompt_len, output_len in requests)
     print(f"Throughput: {len(requests) / elapsed_time:.2f} requests/s, "
@@ -327,7 +332,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--dtype',
         type=str,
-        default='auto',
+        default='float16',
         choices=['auto', 'half', 'float16', 'bfloat16', 'float', 'float32'],
         help='data type for model weights and activations. '
         'The "auto" option will use FP16 precision '
