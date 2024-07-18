@@ -19,17 +19,14 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 os.makedirs(GRAPH_OUTPUT_PATH, exist_ok=True)
 
 SMALL_MODELS = ["facebook/opt-125m","TinyLlama/TinyLlama-1.1B-Chat-v1.0", "facebook/opt-1.3b","google/gemma-2b"]
-SMALL_MODELS=[]
-LARGE_MODELS = ["meta-llama/Meta-Llama-3-8B","meta-llama/Llama-2-7b-hf","google/gemma-7b"]
-LARGE_MODELS=["google/gemma-7b"]
+LARGE_MODELS = ["meta-llama/Meta-Llama-3-8B","meta-llama/Llama-2-7b-hf","mistralai/Mistral-7B-v0.1"]
 MAX_MODEL_LEN = 2048
 BATCH_SIZE=24
 
 models=SMALL_MODELS+LARGE_MODELS
 
-output_lengths=[100,200]#300,400,500,600,700,800]
+output_lengths=[200,400,600,800,1000,1200,1400]
 NUM_GPUS=[1,2]
-
 
 def run_subprocess_realtime(cmd: list) -> int:
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -206,9 +203,6 @@ def main():
                 print(f"[{experiment_name}] Done.")
         
     generate_graphs(OUTPUT_PATH)
-            
-
-    
-                        
+                       
 if __name__ == "__main__":
     main()
