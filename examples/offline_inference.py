@@ -13,7 +13,7 @@ prompts = [
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, max_tokens=100)
 
 # Create an LLM.
-llm = LLM(model="mistralai/Mistral-7B-v0.3", tensor_parallel_size=2, dtype='float16', gpu_memory_utilization=0.97, max_num_seqs=5, max_model_len=1000)
+llm = LLM(model="google/gemma-2b-it", tensor_parallel_size=1, dtype='float16', gpu_memory_utilization=0.97, max_num_seqs=5, max_model_len=1000)
 # Generate texts from the prompts. The output is a list of RequestOutput objects
 # that contain the prompt, generated text, and other information.
 outputs = llm.generate(prompts, sampling_params)
