@@ -7,24 +7,26 @@ import json,re
 import matplotlib.pyplot as plt
 import pandas as pd
 
-SMALL_MODELS = ["facebook/opt-125m", "facebook/opt-1.3b", "facebook/opt-2.7b"]
-SMALL_MODELS = []
-LARGE_MODELS = ["meta-llama/Llama-2-7b-hf", "meta-llama/Meta-Llama-3-8B", "meta-llama/Meta-Llama-3-8B-Instruct", "mistralai/Mistral-7B-v0.1", "mistralai/Mistral-7B-Instruct-v0.3"]
+# SMALL_MODELS = ["facebook/opt-125m", "facebook/opt-1.3b", "facebook/opt-2.7b"]
+# LARGE_MODELS = ["meta-llama/Llama-2-7b-hf","meta-llama/Meta-Llama-3-8B-Instruct", "mistralai/Mistral-7B-v0.1", "mistralai/Mistral-7B-Instruct-v0.3"]
+
+SMALL_MODELS = ["facebook/opt-125m","facebook/opt-2.7b"]
+LARGE_MODELS = ["meta-llama/Llama-2-7b-hf","meta-llama/Meta-Llama-3-8B"]
 
 MODELS = SMALL_MODELS  + LARGE_MODELS
 
-NUM_PROMPTS = 100
+NUM_PROMPTS = 300
 NUM_GPUS = [1, 2]
-BATCH_SIZES = [4,8,16,24, 32, 36, 40, 64]
-MAX_OUTPUT_LEN = 100
-MAX_MODEL_LEN = 1300
+BATCH_SIZES = [8,16,32,48,64]
+MAX_OUTPUT_LEN = 200
+MAX_MODEL_LEN = 2048
 
 gpu_type = "Nvidia GeForce RTX 2080"
 
 GRAPH_OUTPUT_PATH_1="/home/mcw/vllm_results/benchmark_plots1"
 GRAPH_OUTPUT_PATH_2="/home/mcw/vllm_results/benchmark_plots2"
-CSV_OUTPUT_PATH="/home/mcw/vllm_results/benchmark_all_csv"
-OUTPUT_PATH = "/home/mcw/common/results_07_16"
+CSV_OUTPUT_PATH="/home/mcw/vllm_results/benchmark_throughput_csv"
+OUTPUT_PATH = "/home/mcw/vllm_results/json_benchmark_throughput"
 
 # DATASET_PATH = "/home/mcw/common/learning/testing_data/prompts.json"
 DATASET_PATH = "/home/mcw/thrisha/data/ShareGPT_V3_unfiltered_cleaned_split.json"
@@ -190,7 +192,7 @@ def main():
                               f"--tensor-parallel-size", f"{tp}",
                               f"--output-json", output_json,
                               f"--output-len", f"{max_output_tokens}",
-                              f"--max-model-len", f"{MAX_MODEL_LEN}"] 
+                              f"--max-model-len", f"{MAX_MODEL_LEN}"] # f"--enable-chunked-prefill"] enable it for True
                     
                     print(f"Executing command {' '.join(command)}")
                     run_subprocess_realtime(command)
@@ -204,6 +206,9 @@ def main():
                         results['num_gpus'] = tp
                         results['max_output_len'] = max_output_tokens
                         results['batch_size']=batch_size
+                        results['tensor_parallelism']=(True if tp>1 else False)
+                        results['pipeline_parallelism']=False # (True if tp>1 else False) change it when doing for pipeline
+                        results['enable_chunked_prefill']=False # Turn it to True when passing f"--enable-chunked-prefill" flag 
                         
                         with open(output_json, 'w') as f:
                             json.dump(results, f, indent=4)

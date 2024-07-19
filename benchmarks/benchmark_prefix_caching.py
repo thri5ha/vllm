@@ -15,8 +15,8 @@ PROMPT = "You are a helpful assistant in recognizes the content of tables in mar
 
 def test_prefix(llm=None, sampling_params=None, prompts=None):
 
-    NUM_ITERS = 10 # will change it later at time of benchmarking
-    WARM_UP = 5
+    NUM_ITERS = 3
+    WARM_UP = 1
     # print("Warm up")
     for i in range(WARM_UP):
         llm.generate(prompts, sampling_params, use_tqdm=True)
@@ -53,7 +53,7 @@ def main(args):
     prompts = [PROMPT] * num_prompts
     sampling_params = SamplingParams(temperature=0, max_tokens=args.output_len)
 
-    elapsed_time=test_prefix(
+    mean_time=test_prefix(
         llm=llm,
         prompts=prompts,
         sampling_params=sampling_params,
@@ -64,7 +64,7 @@ def main(args):
         results = {
             "model":args.model,
             "output_len":args.output_len,
-            "elapsed_time": elapsed_time,
+            "elapsed_time": mean_time,
             "prefix_cache":args.enable_prefix_caching,
             "num_gpus":args.tensor_parallel_size,
             "batch_size":args.max_num_seqs
