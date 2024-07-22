@@ -15,7 +15,7 @@ LARGE_MODELS = ["meta-llama/Llama-2-7b-hf","meta-llama/Meta-Llama-3-8B"]
 
 MODELS = SMALL_MODELS  + LARGE_MODELS
 
-NUM_PROMPTS = 300
+NUM_PROMPTS = 200
 NUM_GPUS = [1, 2]
 BATCH_SIZES = [8,16,32,48,64]
 MAX_OUTPUT_LEN = 200
