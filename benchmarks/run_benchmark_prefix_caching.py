@@ -19,7 +19,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 os.makedirs(GRAPH_OUTPUT_PATH, exist_ok=True)
 
 
-SMALL_MODELS = ["facebook/opt-125m","facebook/opt-2.7b"]
+SMALL_MODELS = ["facebook/opt-125m","TinyLlama/TinyLlama-1.1B-Chat-v1.0","facebook/opt-2.7b"]
 LARGE_MODELS = ["meta-llama/Llama-2-7b-hf","meta-llama/Meta-Llama-3-8B"]
 
 MAX_MODEL_LEN = 2048
@@ -164,7 +164,7 @@ def generate_graphs(output_folder_path):
                     data = json.load(f)
                     combined_data.append(data)
         generate_plot_modelwise(combined_data)
-        output_length=600 # define output length for single plot
+        output_length=400 # define output length for single plot
         generate_single_plot(combined_data,output_length)
 
     except Exception as e:

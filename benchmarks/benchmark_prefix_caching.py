@@ -15,8 +15,8 @@ PROMPT = "You are a helpful assistant in recognizes the content of tables in mar
 
 def test_prefix(llm=None, sampling_params=None, prompts=None):
 
-    NUM_ITERS = 3
-    WARM_UP = 1
+    NUM_ITERS = 1
+    WARM_UP = 0
     # print("Warm up")
     for i in range(WARM_UP):
         llm.generate(prompts, sampling_params, use_tqdm=True)
@@ -51,7 +51,7 @@ def main(args):
 
     num_prompts = 300
     prompts = [PROMPT] * num_prompts
-    sampling_params = SamplingParams(temperature=0, max_tokens=args.output_len)
+    sampling_params = SamplingParams(temperature=0, max_tokens=args.output_len,ignore_eos=True)
 
     mean_time=test_prefix(
         llm=llm,
