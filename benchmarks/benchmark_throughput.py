@@ -129,8 +129,8 @@ def run_vllm(
                 max_tokens=output_len,
             ))
 
-    NUM_ITERS = 30 # will change it later at time of benchmarking
-    WARM_UP = 5
+    NUM_ITERS = 3 
+    WARM_UP = 1
     print("Warm up")
     for i in range(WARM_UP):
         llm.generate(prompts, sampling_params, use_tqdm=True)

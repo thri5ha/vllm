@@ -18,18 +18,17 @@ GRAPH_OUTPUT_PATH=os.path.join(GRAPH_OUTPUT_PATH,TIMESTAMP)
 os.makedirs(OUTPUT_PATH, exist_ok=True)
 os.makedirs(GRAPH_OUTPUT_PATH, exist_ok=True)
 
-SMALL_MODELS = ["facebook/opt-125m", "facebook/opt-1.3b","facebook/opt-2.7b"]
-SMALL_MODELS=["facebook/opt-125m"]
-LARGE_MODELS = ["meta-llama/Llama-2-7b-hf","TheBloke/Llama-2-7b-Chat-AWQ"]
-LARGE_MODELS=[]
-MAX_MODEL_LEN = 1300
+
+SMALL_MODELS = ["facebook/opt-125m","TinyLlama/TinyLlama-1.1B-Chat-v1.0","facebook/opt-2.7b"]
+LARGE_MODELS = ["meta-llama/Llama-2-7b-hf","meta-llama/Meta-Llama-3-8B"]
+
+MAX_MODEL_LEN = 2048
 BATCH_SIZE=24
 
 models=SMALL_MODELS+LARGE_MODELS
 
-output_lengths=[100,200,300,400,500,600,700,800]
+output_lengths=[200,400,600,800,1000,1200,1400]
 NUM_GPUS=[1,2]
-
 
 def run_subprocess_realtime(cmd: list) -> int:
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -165,7 +164,7 @@ def generate_graphs(output_folder_path):
                     data = json.load(f)
                     combined_data.append(data)
         generate_plot_modelwise(combined_data)
-        output_length=300 # define output length for single plot
+        output_length=400 # define output length for single plot
         generate_single_plot(combined_data,output_length)
 
     except Exception as e:
@@ -174,40 +173,38 @@ def generate_graphs(output_folder_path):
 
 def main():
     for model in models:
-        for tp in NUM_GPUS:
-            if tp == 1 and model in LARGE_MODELS:
-                print("Model cannot fit into a single GPU..")
-                continue
-            for bool_prefix_cache in [True,False]:
-                for output_len in output_lengths:
-                    max_output_tokens = output_len
-                    model_string = model.replace('/', '_').replace('.', '_').replace('-', '_')
-                    experiment_name = f"{model_string}_gpu{tp}_o{max_output_tokens}_pc{bool_prefix_cache}"
-                    output_json = os.path.join(OUTPUT_PATH, f"{experiment_name}.json")
+        if model in LARGE_MODELS:
+            tp=2
+        else:
+            tp=1
+        for bool_prefix_cache in [True,False]:
+            for output_len in output_lengths:
+                max_output_tokens = output_len
+                model_string = model.replace('/', '_').replace('.', '_').replace('-', '_')
+                experiment_name = f"{model_string}_gpu{tp}_o{max_output_tokens}_pc{bool_prefix_cache}"
+                output_json = os.path.join(OUTPUT_PATH, f"{experiment_name}.json")
+                
+                try:
+                    command = ["python3", SCRIPT_PATH,  
+                                f"--model", model,
+                                f"--max-num-seqs", f"{BATCH_SIZE}", 
+                                f"--tensor-parallel-size", f"{tp}",
+                                f"--output-json", output_json,
+                                f"--output-len", f"{max_output_tokens}",
+                                f"--max-model-len", f"{MAX_MODEL_LEN}"] 
+                    if bool_prefix_cache:
+                        command+=["--enable-prefix-caching"] 
+                        
+                    print(f"Executing command {' '.join(command)}")
+                    run_subprocess_realtime(command)
+
+
+                except Exception as e:
+                        print(f"FAILED [[{experiment_name}]] : {e}")
                     
-                    try:
-                        command = ["python3", SCRIPT_PATH,  
-                                    f"--model", model,
-                                    f"--max-num-seqs", f"{BATCH_SIZE}", 
-                                    f"--tensor-parallel-size", f"{tp}",
-                                    f"--output-json", output_json,
-                                    f"--output-len", f"{max_output_tokens}",
-                                    f"--max-model-len", f"{MAX_MODEL_LEN}",
-                                    f"--prefix-caching",f"{bool_prefix_cache}"] 
-                        
-                        print(f"Executing command {' '.join(command)}")
-                        run_subprocess_realtime(command)
-
-
-                    except Exception as e:
-                            print(f"FAILED [[{experiment_name}]] : {e}")
-                        
-                    print(f"[{experiment_name}] Done.")
+                print(f"[{experiment_name}] Done.")
         
     generate_graphs(OUTPUT_PATH)
-            
-
-    
-                        
+                       
 if __name__ == "__main__":
     main()
